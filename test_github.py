@@ -1,7 +1,7 @@
 from github import Github, Auth
 import os
 from dotenv import load_dotenv
-from openai import OpenAI
+import requests
 
 # Load .env
 load_dotenv()
@@ -27,15 +27,31 @@ for repo in user.get_repos()[:5]:
     print("-", repo.name)
 
 # -------------------------
-# Test OpenAI
+# Test AIPipe (replaces OpenAI)
 # -------------------------
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-client = OpenAI(api_key=OPENAI_API_KEY)
+AIPIPE_TOKEN = os.getenv("AIPIPE_TOKEN")
 
 try:
-    response = client.models.list()
-    print("\n✅ OpenAI Authenticated. Available models:")
-    for m in response.data[:5]:
-        print("-", m.id)
+    response = requests.post(
+        "https://aipipe.org/openrouter/v1/chat/completions",
+        headers={
+            "Authorization": f"Bearer {AIPIPE_TOKEN}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": "openai/gpt-4.1-nano",
+            "messages": [
+                {"role": "user", "content": "Say hello! This is an AIPipe test."}
+            ],
+        },
+    )
+
+    if response.status_code == 200:
+        data = response.json()
+        print("\n✅ AIPipe Authenticated. Model response:")
+        print("-", data["choices"][0]["message"]["content"])
+    else:
+        print("\n❌ AIPipe API call failed:", response.text)
+
 except Exception as e:
-    print("\n❌ OpenAI API failed:", e)
+    print("\n❌ Error calling AIPipe API:", e)
